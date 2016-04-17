@@ -3,6 +3,8 @@ package net.fusionlord.blockvehicles.network.messages;
 import io.netty.buffer.ByteBuf;
 import net.fusionlord.blockvehicles.entity.EntityVehicleSlave;
 import net.fusionlord.blockvehicles.util.EntityUtil;
+import net.fusionlord.blockvehicles.util.LogHelper;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
@@ -23,9 +25,8 @@ public class MessageAddBlock implements IMessage
 	public MessageAddBlock(EntityVehicleSlave entityVehicleSlave, EnumFacing facing)
 	{
 		tag = new NBTTagCompound();
-		tag.setLong("EntityMost", entityVehicleSlave.getUniqueID().getMostSignificantBits());
-		tag.setLong("EntityLeast", entityVehicleSlave.getUniqueID().getLeastSignificantBits());
-		tag.setInteger("SideHit", facing.getIndex());
+		tag.setInteger("id", entityVehicleSlave.getEntityId());
+		tag.setInteger("side", facing.getIndex());
 	}
 
 	@Override
@@ -48,8 +49,15 @@ public class MessageAddBlock implements IMessage
 		public IMessage onMessage(MessageAddBlock message, MessageContext ctx)
 		{
 			EntityPlayer player = ctx.getServerHandler().playerEntity;
-			EntityVehicleSlave vehicle = EntityUtil.getEntityByUUID(player.getEntityWorld(), new UUID(message.tag.getLong("EntityMost"), message.tag.getLong("EntityLeast")), EntityVehicleSlave.class);
-			EnumFacing facing = EnumFacing.values()[message.tag.getInteger("SideHit")];
+			EntityVehicleSlave vehicle = null;
+			int id = message.tag.getInteger("id");
+			for (Entity e : player.worldObj.getLoadedEntityList())
+			{
+				LogHelper.info(String.format("ids %s : %s", id, e.getEntityId()));
+				if (id == e.getEntityId()) vehicle = (EntityVehicleSlave) e;
+			}
+			EnumFacing facing = EnumFacing.values()[message.tag.getInteger("side")];
+			LogHelper.info(vehicle);
 			if(vehicle != null)
 			{
 				vehicle.addBlock(player, facing);

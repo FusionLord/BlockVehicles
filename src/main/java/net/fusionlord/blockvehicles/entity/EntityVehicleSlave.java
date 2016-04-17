@@ -3,6 +3,7 @@ package net.fusionlord.blockvehicles.entity;
 import net.fusionlord.blockvehicles.network.PacketHandler;
 import net.fusionlord.blockvehicles.network.messages.MessageAddBlock;
 import net.fusionlord.blockvehicles.structure.VehicleBlock;
+import net.fusionlord.blockvehicles.util.LogHelper;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
@@ -13,10 +14,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.*;
 import net.minecraft.world.World;
 
 import java.util.UUID;
@@ -66,6 +64,18 @@ public class EntityVehicleSlave extends Entity
 	}
 
 	@Override
+	public void onEntityUpdate()
+	{
+		super.onEntityUpdate();
+		if (master == null)
+		{
+			setDead();
+			return;
+		}
+		setPositionAndRotation(master.posX + block.getPos().getX(), master.posY + block.getPos().getY(), master.posZ + block.getPos().getZ(), master.rotationYaw, master.rotationPitch);
+	}
+
+	@Override
 	public ItemStack getPickedResult(RayTraceResult target)
 	{
 		return new ItemStack(block.getState().getBlock(), 1, block.getState().getBlock().getMetaFromState(block.getState()));
@@ -74,22 +84,24 @@ public class EntityVehicleSlave extends Entity
 	@Override
 	public boolean processInitialInteract(EntityPlayer player, ItemStack stack, EnumHand hand)
 	{
-		if (!worldObj.isRemote)
+		if (hand == EnumHand.MAIN_HAND)
 		{
-			return super.processInitialInteract(player, stack, hand);
-		}
-		float partialTicks = Minecraft.getMinecraft().getRenderPartialTicks();
-		Vec3d vec3d = player.getPositionEyes(partialTicks);
-		Vec3d vec3d1 = player.getLook(partialTicks);
-		Vec3d vec3d2 = vec3d.addVector(vec3d1.xCoord * 5D, vec3d1.yCoord * 5D, vec3d1.zCoord * 5D);
-		RayTraceResult target = rayTrace(getPosition(), vec3d, vec3d2, getEntityBoundingBox());
-		if (target != null)
-		{
-			System.out.println(target.sideHit.name());
-			if (stack != null && stack.getItem() instanceof ItemBlock)
+			LogHelper.info(getEntityId());
+
+			float partialTicks = Minecraft.getMinecraft().getRenderPartialTicks();
+			Vec3d vec3d = player.getPositionEyes(partialTicks);
+			Vec3d vec3d1 = player.getLook(partialTicks);
+			Vec3d vec3d2 = vec3d.addVector(vec3d1.xCoord * 5D, vec3d1.yCoord * 5D, vec3d1.zCoord * 5D);
+			RayTraceResult target = rayTrace(player.getPosition(), vec3d, vec3d2, new AxisAlignedBB(-0.5f, -0.5f, -0.5f, .5f, .5f, .5f));
+			LogHelper.info(target);
+			if(target != null)
 			{
-				PacketHandler.sendToServer(new MessageAddBlock(this, target.sideHit));
-				return true;
+				LogHelper.info(target.sideHit.name());
+				if(stack != null && stack.getItem() instanceof ItemBlock)
+				{
+					PacketHandler.sendToServer(new MessageAddBlock(this, target.sideHit));
+					return true;
+				}
 			}
 		}
 		return false;
@@ -100,7 +112,7 @@ public class EntityVehicleSlave extends Entity
 		Vec3d vec3d = start.subtract((double)pos.getX(), (double)pos.getY(), (double)pos.getZ());
 		Vec3d vec3d1 = end.subtract((double)pos.getX(), (double)pos.getY(), (double)pos.getZ());
 		RayTraceResult raytraceresult = boundingBox.calculateIntercept(vec3d, vec3d1);
-		return raytraceresult == null ? null : new RayTraceResult(raytraceresult.hitVec.addVector((double)pos.getX(), (double)pos.getY(), (double)pos.getZ()), raytraceresult.sideHit, pos);
+		return raytraceresult == null ? null : new RayTraceResult(RayTraceResult.Type.ENTITY, raytraceresult.hitVec.addVector((double)pos.getX(), (double)pos.getY(), (double)pos.getZ()), raytraceresult.sideHit, pos);
 	}
 
 	@Override
@@ -148,9 +160,7 @@ public class EntityVehicleSlave extends Entity
 	public void addBlock(EntityPlayer player, EnumFacing facing)
 	{
 		Block block = Block.getBlockFromItem(player.getHeldItemMainhand().getItem());
-
+		LogHelper.info(this.block.getPos().offset(facing));
 		master.addBlock(new VehicleBlock(this.block.getPos().offset(facing), block.getDefaultState()));
 	}
-
-
 }

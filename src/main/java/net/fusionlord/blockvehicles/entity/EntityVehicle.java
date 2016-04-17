@@ -1,7 +1,7 @@
 package net.fusionlord.blockvehicles.entity;
 
 import net.fusionlord.blockvehicles.structure.VehicleBlock;
-import net.fusionlord.blockvehicles.util.LogHelper;
+import net.minecraft.block.material.EnumPushReaction;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityLivingBase;
@@ -19,12 +19,10 @@ import net.minecraft.world.World;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by FusionLord on 4/2/2016.
- */
 public class EntityVehicle extends EntityLiving
 {
 	private List<EntityVehicleSlave> slaves;
+	private Entity rider;
 
 	public EntityVehicle(World worldIn)
 	{
@@ -34,8 +32,17 @@ public class EntityVehicle extends EntityLiving
 	@Override
 	protected void entityInit()
 	{
+		super.entityInit();
 		ignoreFrustumCheck = true;
 		entityCollisionReduction = 1f;
+		setSize(1.025f, 1.025f);
+		setEntityInvulnerable(true);
+	}
+
+	@Override
+	public EnumPushReaction getPushReaction()
+	{
+		return EnumPushReaction.IGNORE;
 	}
 
 	void addBlock(VehicleBlock vehicleBlock)
@@ -62,7 +69,6 @@ public class EntityVehicle extends EntityLiving
 	{
 		super.onLivingUpdate();
 		if (worldObj.isRemote) return;
-		LogHelper.info("test");
 		if (slaves == null || slaves.isEmpty())
 		{
 			slaves = new ArrayList<>();
@@ -80,17 +86,20 @@ public class EntityVehicle extends EntityLiving
 
 			addBlock(new VehicleBlock(new BlockPos(0, 1, 0), Blocks.beacon.getDefaultState()));
 		}
-
-		for (EntityVehicleSlave slave : slaves)
-		{
-			BlockPos pos = getPosition().add(slave.getBlock().getPos()).add(.5f, 0, .5f);
-			if (slave.getPosition() != pos)
-			{
-				slave.setPositionAndRotation(pos.getX(), pos.getY(), pos.getZ(), rotationYaw, rotationPitch);
-			}
-		}
 	}
 
+	@Override
+	public void setDead()
+	{
+		slaves.forEach(EntityVehicleSlave::setDead);
+		super.setDead();
+	}
+
+	@Override
+	public Entity getControllingPassenger()
+	{
+		return rider;
+	}
 
 	/**
 	 * Moves the entity based on the specified heading.  Args: strafe, forward
@@ -132,6 +141,7 @@ public class EntityVehicle extends EntityLiving
 	@Override
 	public void readFromNBT(NBTTagCompound tagCompound)
 	{
+		super.readFromNBT(tagCompound);
 		NBTTagList blocksTag = tagCompound.getTagList("blocksTag", 10);
 		for (int i = 0; i < blocksTag.tagCount(); i++)
 		{
@@ -142,6 +152,7 @@ public class EntityVehicle extends EntityLiving
 	@Override
 	public void writeToNBT(NBTTagCompound tagCompound)
 	{
+		super.writeToNBT(tagCompound);
 		NBTTagList tagList = new NBTTagList();
 		if (slaves != null && !slaves.isEmpty())
 		{
@@ -190,6 +201,7 @@ public class EntityVehicle extends EntityLiving
 
 	private void mountTo(EntityPlayer player)
 	{
+		rider = player;
 		player.rotationYaw = this.rotationYaw;
 		player.rotationPitch = this.rotationPitch;
 

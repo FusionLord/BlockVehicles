@@ -36,11 +36,6 @@ public class ClientProxy extends CommonProxy
 		super.postInit(event);
 	}
 
-
-	//
-	// The below method and class is used as part of Forge 1668+'s workaround for render manager being null during preinit
-	//
-
 	private static <E extends Entity> void registerEntityRenderer(Class<E> entityClass, Class<? extends Render<E>> renderClass)
 	{
 		RenderingRegistry.registerEntityRenderingHandler(entityClass, new EntityRenderFactory<E>(renderClass));
