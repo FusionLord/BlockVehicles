@@ -1,0 +1,16 @@
+[
+{
+  "modid": "blockvehicles",
+  "name": "BlockVehicles",
+  "description": "Give players the ability to create vehicles with blocks.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["FusionLord"],
+  "credits": "",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
